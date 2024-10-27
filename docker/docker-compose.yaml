@@ -1,24 +1,47 @@
 version: '2.3'
 
 services:
-  conductor-server:
+  # Load Balancer (NGINX)
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    networks:
+      - internal
+    ports:
+      - "80:80"  # Expose NGINX on port 8080
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  # Mount custom NGINX config
+    depends_on:
+      - conductor-server1
+      - conductor-server2
+      - server1
+      - server2
+      - server3
+      - server4
+
+  conductor-server1:
     environment:
+      - PORT=8080
+      - CONDUCTOR_UI_PORT=5000
       - CONFIG_PROP=config-redis.properties
-      - JAVA_OPTS=-Dpolyglot.engine.WarnInterpreterOnly=false
+      - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dpolyglot.engine.WarnInterpreterOnly=false
     image: conductor:server
-    container_name: conductor-server
+    container_name: conductor-server1
     build:
       context: ../
-      dockerfile: docker/server/Dockerfile
+      dockerfile: docker/server1/Dockerfile
       args:
         YARN_OPTS: ${YARN_OPTS}
     networks:
       - internal
-    ports:
-      - 8080:8080
-      - 5000:5000
+    #    ports:
+    #      - 8080:8080
+    #      - 5000:5000
+    expose:
+      - "8080"  # Expose internal service port
+      - "5000"  # Expose internal service port
     healthcheck:
-      test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
+      test: [ "CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health" ]
       interval: 60s
       timeout: 30s
       retries: 12
@@ -36,8 +59,50 @@ services:
         max-size: "1k"
         max-file: "3"
 
+  conductor-server2:
+    environment:
+      - PORT=8080
+      - CONDUCTOR_UI_PORT=5000
+      - CONFIG_PROP=config-redis.properties
+      - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server
+    container_name: conductor-server2
+    build:
+      context: ../
+      dockerfile: docker/server1/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    #    ports:
+    #      - 8080:8080
+    #      - 5000:5000
+    expose:
+      - "8080"  # Expose internal service port
+      - "5000"  # Expose internal service port
+    healthcheck:
+      test: [ "CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health" ]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-elasticsearch:es
+      - conductor-redis:rs
+    depends_on:
+      conductor-elasticsearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+
   conductor-redis:
     image: redis:6.2.3-alpine
+    container_name: conductor-redis
     volumes:
       - ../server/config/redis.conf:/usr/local/etc/redis/redis.conf
     networks:
@@ -49,6 +114,7 @@ services:
 
   conductor-elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.11
+    container_name: conductor-elasticsearch
     environment:
       - "ES_JAVA_OPTS=-Xms512m -Xmx1024m"
       - xpack.security.enabled=false
@@ -69,6 +135,90 @@ services:
       options:
         max-size: "1k"
         max-file: "3"
+
+  worker1:
+    image: worker:latest  # Replace with your app image
+    container_name: worker1
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=8
+      - POLLING_TIME=100
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+
+  worker2:
+    image: worker:latest  # Replace with your app image
+    container_name: worker2
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=8
+      - POLLING_TIME=100
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+
+  worker3:
+    image: worker:latest  # Replace with your app image
+    container_name: worker3
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=8
+      - POLLING_TIME=100
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+
+  worker4:
+    image: worker:latest  # Replace with your app image
+    container_name: worker4
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=8
+      - POLLING_TIME=100
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+
+  server1:
+    image: server:latest  # Replace with your app image
+    container_name: server1
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server2:
+    image: server:latest  # Replace with your app image
+    container_name: server2
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server3:
+    image: server:latest  # Replace with your app image
+    container_name: server3
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server4:
+    image: server:latest  # Replace with your app image
+    container_name: server4
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
+    expose:
+      - "3000"  # Expose internal service port
 
 volumes:
   esdata-conductor:

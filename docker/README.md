@@ -83,3 +83,8 @@ When building a Docker image using `docker`, you must call it like e.g.
 ```
 docker build --build-arg='YARN_OPTS=--network-timeout 10000000' .. -f server/Dockerfile -t oss-conductor:v3.21.4
 ```
+
+### force build
+```bash
+YARN_OPTS='--network-timeout 10000000' docker compose -f docker-compose.yaml up --build --force-recreate -d
+```
