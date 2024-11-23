@@ -13,7 +13,7 @@ COPY . /conductor
 WORKDIR /conductor
 
 # Build the server on run
-RUN ./gradlew build -x test
+RUN ./gradlew build -x test -x spotlessApply -x spotlessCheck
 WORKDIR /server/build/libs
 RUN ls -ltr
 
@@ -58,7 +58,8 @@ RUN mkdir -p /app/config /app/logs /app/libs
 
 # Copy the compiled output to new image
 COPY docker/server1/bin /app
-COPY docker/server1/config /app/config
+#COPY docker/server1/config /app/config
+COPY docker/server1/config-redis1.properties /app/config
 COPY --from=builder /conductor/server/build/libs/*boot*.jar /app/libs/conductor-server.jar
 
 # Copy compiled UI assets to nginx www directory

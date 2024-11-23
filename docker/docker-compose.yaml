@@ -14,6 +14,7 @@ services:
     depends_on:
       - conductor-server1
       - conductor-server2
+      - conductor-server3
       - server1
       - server2
       - server3
@@ -23,9 +24,9 @@ services:
     environment:
       - PORT=8080
       - CONDUCTOR_UI_PORT=5000
-      - CONFIG_PROP=config-redis.properties
+      - CONFIG_PROP=config-redis1.properties
       - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dpolyglot.engine.WarnInterpreterOnly=false
-    image: conductor:server
+    image: conductor:server1
     container_name: conductor-server1
     build:
       context: ../
@@ -63,13 +64,13 @@ services:
     environment:
       - PORT=8080
       - CONDUCTOR_UI_PORT=5000
-      - CONFIG_PROP=config-redis.properties
+      - CONFIG_PROP=config-redis2.properties
       - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dpolyglot.engine.WarnInterpreterOnly=false
-    image: conductor:server
+    image: conductor:server2
     container_name: conductor-server2
     build:
       context: ../
-      dockerfile: docker/server1/Dockerfile
+      dockerfile: docker/server2/Dockerfile
       args:
         YARN_OPTS: ${YARN_OPTS}
     networks:
@@ -99,6 +100,46 @@ services:
         max-size: "1k"
         max-file: "3"
 
+
+  conductor-server3:
+    environment:
+      - PORT=8080
+      - CONDUCTOR_UI_PORT=5000
+      - CONFIG_PROP=config-redis3.properties
+      - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server3
+    container_name: conductor-server3
+    build:
+      context: ../
+      dockerfile: docker/server3/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    #    ports:
+    #      - 8080:8080
+    #      - 5000:5000
+    expose:
+      - "8080"  # Expose internal service port
+      - "5000"  # Expose internal service port
+    healthcheck:
+      test: [ "CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health" ]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-elasticsearch:es
+      - conductor-redis:rs
+    depends_on:
+      conductor-elasticsearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
 
   conductor-redis:
     image: redis:6.2.3-alpine
