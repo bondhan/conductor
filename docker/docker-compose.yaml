@@ -27,7 +27,6 @@ services:
       - CONFIG_PROP=config-redis1.properties
       - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dpolyglot.engine.WarnInterpreterOnly=false
     image: conductor:server1
-    container_name: conductor-server1
     build:
       context: ../
       dockerfile: docker/server1/Dockerfile
@@ -177,44 +176,13 @@ services:
         max-size: "1k"
         max-file: "3"
 
-  worker1:
+  worker:
     image: worker:latest  # Replace with your app image
-    container_name: worker1
     networks:
       - internal
     environment:
-      - BATCH_SIZE=8
-      - POLLING_TIME=100
-      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
-
-  worker2:
-    image: worker:latest  # Replace with your app image
-    container_name: worker2
-    networks:
-      - internal
-    environment:
-      - BATCH_SIZE=8
-      - POLLING_TIME=100
-      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
-
-  worker3:
-    image: worker:latest  # Replace with your app image
-    container_name: worker3
-    networks:
-      - internal
-    environment:
-      - BATCH_SIZE=8
-      - POLLING_TIME=100
-      - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
-
-  worker4:
-    image: worker:latest  # Replace with your app image
-    container_name: worker4
-    networks:
-      - internal
-    environment:
-      - BATCH_SIZE=8
-      - POLLING_TIME=100
+      - BATCH_SIZE=1
+      - POLLING_TIME=20
       - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
 
   server1:
@@ -260,6 +228,7 @@ services:
       - CONDUCTOR_SERVER_URL=http://host.docker.internal/api
     expose:
       - "3000"  # Expose internal service port
+
 
 volumes:
   esdata-conductor:
