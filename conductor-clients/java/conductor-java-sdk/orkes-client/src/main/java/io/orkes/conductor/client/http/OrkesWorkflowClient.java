@@ -36,6 +36,7 @@ import com.netflix.conductor.common.model.BulkResponse;
 import com.netflix.conductor.common.run.SearchResult;
 import com.netflix.conductor.common.run.Workflow;
 import com.netflix.conductor.common.run.WorkflowSummary;
+import com.netflix.conductor.common.run.WorkflowTestRequest;
 
 import io.orkes.conductor.client.model.CorrelationIdsSearchRequest;
 import io.orkes.conductor.client.model.WorkflowRun;
@@ -112,7 +113,7 @@ public class OrkesWorkflowClient implements AutoCloseable {
      */
     public WorkflowRun executeWorkflow(StartWorkflowRequest request, String waitUntilTask, Duration waitTimeout) throws ExecutionException, InterruptedException, TimeoutException {
         CompletableFuture<WorkflowRun> future = executeWorkflow(request, waitUntilTask);
-        return future.get(waitTimeout.get(ChronoUnit.MILLIS), TimeUnit.MILLISECONDS);
+        return future.get(waitTimeout.get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
     }
 
     public void terminateWorkflowWithFailure(String workflowId, String reason, boolean triggerFailureWorkflow) {
@@ -200,6 +201,10 @@ public class OrkesWorkflowClient implements AutoCloseable {
 
     public void skipTaskFromWorkflow(String workflowId, String taskReferenceName) {
         workflowClient.skipTaskFromWorkflow(workflowId, taskReferenceName);
+    }
+
+    public Workflow testWorkflow(WorkflowTestRequest testRequest) {
+        return workflowClient.testWorkflow(testRequest);
     }
 
     public SearchResult<WorkflowSummary> search(String query) {
