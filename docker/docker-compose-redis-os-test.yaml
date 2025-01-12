@@ -1,0 +1,405 @@
+version: '2.3'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    networks:
+      - internal
+    ports:
+      - "80:80"  # Expose NGINX on port 8080
+    volumes:
+      - ./nginx/nginx-test.conf:/etc/nginx/nginx.conf  # Mount custom NGINX config
+    depends_on:
+      - conductor-server
+      - conductor-server1
+      - conductor-server2
+      - conductor-server3
+      - conductor-server4
+      - server1
+      - server2
+      - server3
+      - server4
+
+  conductor-server:
+    environment:
+      - CONFIG_PROP=config-redis-os.properties
+      - JAVA_OPTS=-Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server
+    container_name: conductor-server
+    build:
+      context: ../
+      dockerfile: docker/server/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    ports:
+      - 8080
+      - 5000
+    healthcheck:
+      test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-opensearch:os
+      - conductor-redis:rs
+    depends_on:
+      conductor-opensearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+  conductor-server1:
+    environment:
+      - CONFIG_PROP=config-redis-os.properties
+      - JAVA_OPTS=-Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server
+    container_name: conductor-server1
+    build:
+      context: ../
+      dockerfile: docker/server/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    ports:
+      - 8080
+      - 5000
+    healthcheck:
+      test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-opensearch:os
+      - conductor-redis:rs
+    depends_on:
+      conductor-opensearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+  conductor-server2:
+    environment:
+      - CONFIG_PROP=config-redis-os.properties
+      - JAVA_OPTS=-Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server
+    container_name: conductor-server2
+    build:
+      context: ../
+      dockerfile: docker/server/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    ports:
+      - 8080
+      - 5000
+    healthcheck:
+      test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-opensearch:os
+      - conductor-redis:rs
+    depends_on:
+      conductor-opensearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+        
+
+  conductor-server3:
+    environment:
+      - CONFIG_PROP=config-redis-os.properties
+      - JAVA_OPTS=-Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server
+    container_name: conductor-server3
+    build:
+      context: ../
+      dockerfile: docker/server/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    ports:
+      - 8080
+      - 5000
+    healthcheck:
+      test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-opensearch:os
+      - conductor-redis:rs
+    depends_on:
+      conductor-opensearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+  conductor-server4:
+    environment:
+      - CONFIG_PROP=config-redis-os.properties
+      - JAVA_OPTS=-Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server
+    container_name: conductor-server4
+    build:
+      context: ../
+      dockerfile: docker/server/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    ports:
+      - 8080
+      - 5000
+    healthcheck:
+      test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-opensearch:os
+      - conductor-redis:rs
+    depends_on:
+      conductor-opensearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+  conductor-redis:
+    image: redis:6.2.3-alpine
+    container_name: conductor-redis
+    volumes:
+      - ../server/config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - internal
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: [ "CMD", "redis-cli","ping" ]
+
+  conductor-opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    container_name: conductor-opensearch
+    environment:
+      - plugins.security.disabled=true
+      - cluster.name=opensearch-cluster # Name the cluster
+      - node.name=conductor-opensearch # Name the node that will run in this container
+      - discovery.seed_hosts=conductor-opensearch # Nodes to look for when discovering the cluster
+      - cluster.initial_cluster_manager_nodes=conductor-opensearch # Nodes eligible to serve as cluster manager
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=P4zzW)rd>>123_
+    volumes:
+      - osdata-conductor:/usr/share/opensearch/data
+    networks:
+      - internal
+    ports:
+      - 9201:9200
+    healthcheck:
+      test: curl http://localhost:9200/_cluster/health -o /dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+  worker:
+    image: worker:latest  # Replace with your app image
+    container_name: worker
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker1:
+    image: worker:latest  # Replace with your app image
+    container_name: worker1
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker2:
+    image: worker:latest  # Replace with your app image
+    container_name: worker2
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker3:
+    image: worker:latest  # Replace with your app image
+    container_name: worker3
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker4:
+    image: worker:latest  # Replace with your app image
+    container_name: worker4
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker5:
+    image: worker:latest  # Replace with your app image
+    container_name: worker5
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker6:
+    image: worker:latest  # Replace with your app image
+    container_name: worker6
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker7:
+    image: worker:latest  # Replace with your app image
+    container_name: worker7
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker8:
+    image: worker:latest  # Replace with your app image
+    container_name: worker8
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+
+  worker9:
+    image: worker:latest  # Replace with your app image
+    container_name: worker9
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  worker10:
+    image: worker:latest  # Replace with your app image
+    container_name: worker10
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=10
+      - POLLING_TIME=10
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+
+
+  server1:
+    image: server:latest  # Replace with your app image
+    container_name: server1
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=1
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server2:
+    image: server:latest  # Replace with your app image
+    container_name: server2
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=1
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server3:
+    image: server:latest  # Replace with your app image
+    container_name: server3
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=1
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server4:
+    image: server:latest  # Replace with your app image
+    container_name: server4
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=1
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service po
+
+volumes:
+  osdata-conductor:
+    driver: local
+
+networks:
+  internal:

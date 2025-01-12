@@ -244,7 +244,7 @@ public class ConductorProperties {
      * polling, i.e.: call to {@link com.netflix.conductor.dao.QueueDAO#pop(String, int, int)}.
      */
     @DurationUnit(ChronoUnit.MILLIS)
-    private Duration systemTaskQueuePopTimeout = Duration.ofMillis(100);
+    private Duration systemTaskQueuePopTimeout = Duration.ofMillis(10);
 
     public String getStack() {
         return stack;

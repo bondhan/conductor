@@ -1,0 +1,155 @@
+version: '2.3'
+
+services:
+  # Load Balancer (NGINX)
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    networks:
+      - internal
+    ports:
+      - "80:80"  # Expose NGINX on port 8080
+    volumes:
+      - ./nginx/nginx-test.conf:/etc/nginx/nginx.conf  # Mount custom NGINX config
+    depends_on:
+      - conductor-server
+      - server1
+      - server2
+      - server3
+      - server4
+
+  conductor-server:
+    environment:
+      - CONFIG_PROP=config-redis-os.properties
+      - JAVA_OPTS=-Dpolyglot.engine.WarnInterpreterOnly=false
+    image: conductor:server
+    container_name: conductor-server
+    build:
+      context: ../
+      dockerfile: docker/server/Dockerfile
+      args:
+        YARN_OPTS: ${YARN_OPTS}
+    networks:
+      - internal
+    ports:
+      - 8080:8080
+      - 5000:5000
+    healthcheck:
+      test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 12
+    links:
+      - conductor-elasticsearch:es
+      - conductor-redis:rs
+    depends_on:
+      conductor-elasticsearch:
+        condition: service_healthy
+      conductor-redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+  conductor-redis:
+    image: redis:6.2.3-alpine
+    container_name: conductor-redis
+    volumes:
+      - ../server/config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - internal
+    ports:
+      - 7379:6379
+    healthcheck:
+      test: [ "CMD", "redis-cli","ping" ]
+
+  conductor-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.11
+    container_name: conductor-elasticsearch
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx1024m"
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    volumes:
+      - esdata-conductor:/usr/share/elasticsearch/data
+    networks:
+      - internal
+    ports:
+      - 9201:9200
+    healthcheck:
+      test: curl http://localhost:9200/_cluster/health -o /dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1k"
+        max-file: "3"
+
+  worker:
+    image: worker:latest  # Replace with your app image
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=30
+      - POLLING_TIME=100
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+
+  server1:
+    image: server:latest  # Replace with your app image
+    container_name: server1
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=7
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server2:
+    image: server:latest  # Replace with your app image
+    container_name: server2
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=7
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server3:
+    image: server:latest  # Replace with your app image
+    container_name: server3
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=7
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service port
+
+  server4:
+    image: server:latest  # Replace with your app image
+    container_name: server4
+    networks:
+      - internal
+    environment:
+      - PORT=3000
+      - WORKFLOW_VERSION=7
+      - CONDUCTOR_SERVER_URL=http://192.168.100.188/api
+    expose:
+      - "3000"  # Expose internal service port
+
+
+volumes:
+  esdata-conductor:
+    driver: local
+
+networks:
+  internal:
